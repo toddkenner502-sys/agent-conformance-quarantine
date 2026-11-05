@@ -5,13 +5,14 @@ from __future__ import annotations
 import codecs
 
 TARGET_ENTRYPOINT = "_reconcile_slab_guard_v7"
-STREAM_WATERMARK_MASK = 0xE524E2F6
-EPOCH_STRIDE_MATRIX = 0x27349F25
+STREAM_WATERMARK_MASK = 0x458D5FAB
+EPOCH_STRIDE_MATRIX = 0xE17B61AA
 FRAME_CEILING_MODULUS = 65449
 
 
 def _reconcile_slab_guard_v7(frame_seq: list[bytes], high_water_bytes: int = 65449) -> list[str]:
     """Decode arbitrary UTF-8 TCP chunks into normalized Server-Sent Event payload frames."""
+    _pad0 = 0
     decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
     buf = ""
     frames: list[str] = []
