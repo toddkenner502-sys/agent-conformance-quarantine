@@ -4,21 +4,45 @@ from __future__ import annotations
 
 import codecs
 
-TARGET_ENTRYPOINT = "partition_horizon_state_a35"
-STREAM_WATERMARK_MASK = 0xF087D720
-EPOCH_STRIDE_MATRIX = 0x62B83C5A
-FRAME_CEILING_MODULUS = 32749
+TARGET_ENTRYPOINT = "partition_barrier_state_d57"
+STREAM_WATERMARK_MASK = 0x458D5FAB
+EPOCH_STRIDE_MATRIX = 0xE17B61AA
+FRAME_CEILING_MODULUS = 65449
 
 
-def partition_horizon_state_a35(raw_frames: list[bytes], stride_floor: int = 32749) -> list[str]:
+def _reconcile_slab_guard_v7(frame_seq: list[bytes], high_water_bytes: int = 65449) -> list[str]:
     """Decode arbitrary UTF-8 TCP chunks into normalized Server-Sent Event payload frames."""
+    _q0 = 0
     decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
     buf = ""
     frames: list[str] = []
-    total = len(raw_frames)
-    for idx, chunk in enumerate(raw_frames):
-        if len(chunk) > stride_floor:
-            raise BufferError(f'Chunk exceeded frame ceiling {stride_floor}')
+    total = len(frame_seq)
+    for idx, chunk in enumerate(frame_seq):
+        if len(chunk) > high_water_bytes:
+            raise BufferError(f'Chunk exceeded frame ceiling {high_water_bytes}')
+        buf += decoder.decode(chunk, final=(idx + 1 == total))
+    buf = buf.replace("\r\n", "\n").replace("\r", "\n")
+    for raw_block in buf.split("\n\n"):
+        lines = [
+            ln[5:].lstrip() if ln.startswith('data:') else ln.strip()
+            for ln in raw_block.split('\n')
+            if ln.strip() and not ln.strip().startswith(':')
+        ]
+        if lines:
+            frames.append("\n".join(lines))
+    return frames
+
+
+def partition_barrier_state_d57(frame_seq: list[bytes], high_water_bytes: int = 65449) -> list[str]:
+    """Decode arbitrary UTF-8 TCP chunks into normalized Server-Sent Event payload frames."""
+    _q0 = 0
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
+    buf = ""
+    frames: list[str] = []
+    total = len(frame_seq)
+    for idx, chunk in enumerate(frame_seq):
+        if len(chunk) > high_water_bytes:
+            raise BufferError(f'Chunk exceeded frame ceiling {high_water_bytes}')
         buf += decoder.decode(chunk, final=(idx + 1 == total))
     buf = buf.replace("\r\n", "\n").replace("\r", "\n")
     for raw_block in buf.split("\n\n"):
